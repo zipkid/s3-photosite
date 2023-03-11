@@ -9,9 +9,27 @@ import {
     fromCognitoIdentityPool
 } from "@aws-sdk/credential-provider-cognito-identity";
 
+/*
+    S3 Photo website
+    Copyright (C) 2023 Stefan Goethals https://github.com/zipkid/s3-photosite
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 // Constants
 const REGION = 'eu-west-1';
-const IDENTITY_POOL_ID = 'eu-west-1:28679384-ebdb-4656-a526-74bc6dbf89a8';
+const IDENTITY_POOL_ID = 'eu-west-1:a4ab3344-77dc-4f44-bd07-ca1d4261ed54';
 const albumBucketName = 'devopsdays.zipkid.eu';
 const albumsPrefix = 'albums/';
 
@@ -48,7 +66,7 @@ const bucket_data = async () => {
     const command = new ListObjectsV2Command({
         Bucket: albumBucketName,
         Prefix: albumsPrefix,
-        MaxKeys: 10,
+        // MaxKeys: 100,
     });
     try {
         let isTruncated = true;
@@ -70,7 +88,7 @@ function parse_contents(contents) {
     var data = {}
     for (const key of contents) {
         var path = key.split('/');
-        if ( ( path.slice(-1) == '.dir' ) || ( path.includes('full') ) ) { continue; }
+        if ( ( path.slice(-1)[0].startsWith('.') ) || ( path.includes('full') ) ) { continue; }
         var albumName = path[1];
         if ( ! (albumName in data) ) {
             data[albumName] = {
@@ -153,9 +171,6 @@ function build_photo_list(data) {
 }
 
 function build_album_html(albumName, data, parent) {
-    console.log(data)
-    console.log(parent)
-    console.log(typeof parent)
     let album = []
     if ( parent === 'undefined' ) {
         album = data[albumName]

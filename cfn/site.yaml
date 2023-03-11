@@ -48,112 +48,110 @@ Resources:
         - Name: !Ref SiteBucket
           Type: A
           AliasTarget:
-            DNSName: !Join
-              - '-'
-              - - 's3-website'
-                - !Ref Zone
-                - '.amazonaws.com'
+            DNSName: !Sub
+              - 's3-website-${zone}.amazonaws.com'
+              - { zone: !Ref Zone }
             HostedZoneId: !Ref BucketHostedZoneId
 
-#   # The federated identity for our user pool to auth with
-#   CognitoIdentityPool:
-#     Type: AWS::Cognito::IdentityPool
-#     Properties:
-#       IdentityPoolName: SiteCognitoIdentityPool
-#       AllowUnauthenticatedIdentities: true
+  # The federated identity for our user pool to auth with
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub 'SiteCognitoIdentityPool-${AWS::StackName}'
+      AllowUnauthenticatedIdentities: true
 
-#   # IAM roles
-#   CognitoIdentityPoolRoles:
-#     Type: AWS::Cognito::IdentityPoolRoleAttachment
-#     Properties:
-#       IdentityPoolId:
-#         Ref: CognitoIdentityPool
-#       Roles:
-#         authenticated:
-#           Fn::GetAtt: [CognitoAuthRole, Arn]
-#         unauthenticated:
-#           Fn::GetAtt: [CognitoUnAuthRole, Arn]
+  # IAM roles
+  CognitoIdentityPoolRoles:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId:
+        Ref: CognitoIdentityPool
+      Roles:
+        authenticated:
+          Fn::GetAtt: [ CognitoAuthRole, Arn ]
+        unauthenticated:
+          Fn::GetAtt: [ CognitoUnAuthRole, Arn ]
 
-#   # IAM role used for authenticated users
-#   CognitoAuthRole:
-#     Type: AWS::IAM::Role
-#     Properties:
-#       RoleName: CognitoAuthRole
-#       Path: /
-#       AssumeRolePolicyDocument:
-#         Version: '2012-10-17'
-#         Statement:
-#           - Effect: 'Allow'
-#             Principal:
-#               Federated: 'cognito-identity.amazonaws.com'
-#             Action:
-#               - 'sts:AssumeRoleWithWebIdentity'
-#             Condition:
-#               StringEquals:
-#                 'cognito-identity.amazonaws.com:aud':
-#                   Ref: CognitoIdentityPool
-#               'ForAnyValue:StringLike':
-#                 'cognito-identity.amazonaws.com:amr': authenticated
-#       Policies:
-#         - PolicyName: 'CognitoAuthorizedPolicy'
-#           PolicyDocument:
-#             Version: '2012-10-17'
-#             Statement:
-#               - Effect: 'Allow'
-#                 Action:
-#                   - 'mobileanalytics:PutEvents'
-#                   - 'cognito-sync:*'
-#                   - 'cognito-identity:*'
-#                 Resource: '*'
+  # IAM role used for authenticated users
+  CognitoAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'CognitoAuthRole-${AWS::StackName}'
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud':
+                  Ref: CognitoIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: !Sub 'CognitoAuthorizedPolicy-${AWS::StackName}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'mobileanalytics:PutEvents'
+                  - 'cognito-sync:*'
+                  - 'cognito-identity:*'
+                Resource: '*'
 
-#   CognitoUnAuthRole:
-#     Type: AWS::IAM::Role
-#     Properties: 
-#       RoleName: CognitoUnAuthRole
-#       Path: /
-#       AssumeRolePolicyDocument:
-#         Version: '2012-10-17'
-#         Statement:
-#           - Effect: 'Allow'
-#             Principal:
-#               Federated: 'cognito-identity.amazonaws.com'
-#             Action:
-#               - 'sts:AssumeRoleWithWebIdentity'
-#             Condition:
-#               StringEquals:
-#                 'cognito-identity.amazonaws.com:aud':
-#                   Ref: CognitoIdentityPool
-#               'ForAnyValue:StringLike':
-#                 'cognito-identity.amazonaws.com:amr': unauthenticated
-#       Policies:
-#         - PolicyName: 'CognitoAuthorizedPolicy'
-#           PolicyDocument:
-#             Version: '2012-10-17'
-#             Statement:
-#               - Effect: 'Allow'
-#                 Action:
-#                   - 'mobileanalytics:PutEvents'
-#                   - 'cognito-sync:*'
-#                 Resource: '*'
+  CognitoUnAuthRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      RoleName: !Sub 'CognitoUnAuthRole-${AWS::StackName}'
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud':
+                  Ref: CognitoIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+      Policies:
+        - PolicyName: !Sub 'CognitoAuthPolicy-${AWS::StackName}'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'mobileanalytics:PutEvents'
+                  - 'cognito-sync:*'
+                Resource: '*'
 
-#   SiteRolePermissions:
-#     Type: AWS::IAM::ManagedPolicy
-#     Properties: 
-#       ManagedPolicyName: SiteRolePolicy
-#       PolicyDocument:
-#         Version: '2012-10-17'
-#         Statement:
-#           - Effect: 'Allow'
-#             Action:
-#               - 's3:ListBucket'
-#             Resource: !Sub 
-#               - 'arn:${AWS::Partition}:s3:::${Bucket}'
-#               - Bucket: !Ref SiteBucket
-#       Roles:
-#         - CognitoUnAuthRole
+  SiteRolePermissions:
+    Type: AWS::IAM::ManagedPolicy
+    Properties: 
+      # ManagedPolicyName: SiteRolePolicy
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 's3:ListBucket'
+            Resource: !Sub 
+              - 'arn:${AWS::Partition}:s3:::${Bucket}'
+              - Bucket: !Ref SiteBucket
+      Roles:
+        - !Sub 'CognitoUnAuthRole-${AWS::StackName}'
 
-# # Print out the Id of the Identity Pool that is created
-# Outputs:
-#   IdentityPoolId:
-#     Value:
-#       Ref: CognitoIdentityPool
+# Print out the Id of the Identity Pool that is created
+Outputs:
+  IdentityPoolId:
+    Value:
+      Ref: CognitoIdentityPool
