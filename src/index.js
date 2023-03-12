@@ -61,6 +61,12 @@ function getHtml(template) {
     return template.join('\n');
 }
 
+function addState(location, title = '', id = '1') {
+    let stateObj = { id: id };
+    window.history.pushState(stateObj, title, `${origin}/${location}`);
+}
+
+// Fetch S3 bucket object data
 const bucket_data = async () => {
     let content_data = []
     const command = new ListObjectsV2Command({
@@ -84,6 +90,7 @@ const bucket_data = async () => {
     return content_data;
 };
 
+// Create album & photo list from S3 object data
 function parse_contents(contents) {
     var data = {}
     for (const key of contents) {
@@ -116,22 +123,15 @@ function parse_contents(contents) {
     return data;
 }
 
-function build_album_list(data, parent) {
-    let album_html = []
-    for ( const albumName of Object.keys(data).sort() ) {
-        album_html.push( getHtml([
-            '<li>',
-                '<button style="margin:5px;" onclick="EntryPoint.build_album(\'' + albumName + '\', \'' + parent +'\')">',
-                    albumName,
-                '</button>',
-            '</li>'
-        ]));
-    }
-    return album_html;
+export function album_list(album) {
+    promise_data.then(function(data) {
+        let htmlTemplate = build_album_list_html(data)
+        document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
+    })
 }
 
-function build_album_list_html(data) {
-    let albums = build_album_list(data)
+function build_album_list_html(data, parent) {
+    let albums = build_album_list(data, parent)
     var htmlTemplate = [
         '<h2>Albums</h2>',
         '<ul>',
@@ -141,33 +141,24 @@ function build_album_list_html(data) {
     return htmlTemplate;
 }
 
-export function album_list() {
-    promise_data.then(function(data) {
-        let htmlTemplate = build_album_list_html(data)
-        document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
-    })
-}
-
-function build_photo_list(data) {
-    let photos_html = []
-    for ( const photoName of Object.keys(data).sort() ) {
-        let photo = data[photoName]
-        let path = photo['path']
-
-        var photoUrl = photo['key'];
-        var fullPhotoUrl = path.slice(0, (path.length - 1)).join('/') + '/full/' + photo['name']
-        photos_html.push( getHtml([
-            '<a href="' + fullPhotoUrl + '">',
-                '<img src="' + photoUrl + '"/></a>',
-            '</a>',
+function build_album_list(data, parent) {
+    let album_html = []
+    for ( const albumName of Object.keys(data).sort() ) {
+        album_html.push( getHtml([
+            '<li>',
+                `<button class="albumListItem" onclick="EntryPoint.build_album('${albumName}','${parent}')">`,
+                    albumName,
+                '</button>',
+            '</li>'
         ]));
     }
-    /*
-        <video controls="controls" width="800" height="600" name="Video Name">
-            <source src="http://www.myserver.com/myvideo.mov">
-        </video>
-    */
-    return photos_html;
+    return album_html;
+}
+
+export function build_album(albumName, parent) {
+    promise_data.then(function(data) {
+        build_album_html(albumName, data, parent)
+    })
 }
 
 function build_album_html(albumName, data, parent) {
@@ -180,24 +171,21 @@ function build_album_html(albumName, data, parent) {
     let photos = album['photos']
     let albums = []
     if ('albums' in album ) {
-        albums = build_album_list(album['albums'], albumName)
+        albums = build_album_list_html(album['albums'], albumName)
     }
     let photos_html = build_photo_list(photos)
     var htmlTemplate = [
         '<div>',
-            '<button onclick="EntryPoint.album_list()">',
+            `<button onclick="EntryPoint.album_list('${parent})">`,
                 'Back To Albums',
             '</button>',
         '</div>',
-        "<h2>Album: " + albumName + "</h2>",
-        '<ul>',
-            getHtml(albums),
-        '</ul>',
+        getHtml(albums),
         '<div id="lightgallery">',
             getHtml(photos_html),
         '</div>',
         '<div>',
-            '<button onclick="EntryPoint.album_list()">',
+            `<button onclick="EntryPoint.album_list('${parent})">`,
                 'Back To Albums',
             '</button>',
         '</div>',
@@ -210,14 +198,30 @@ function build_album_html(albumName, data, parent) {
     });
 }
 
-export function build_album(albumName, parent) {
-    promise_data.then(function(data) {
-        build_album_html(albumName, data, parent)
-    })
+function build_photo_list(data) {
+    let photos_html = []
+    for ( const photoName of Object.keys(data).sort() ) {
+        let photo = data[photoName]
+        let path = photo['path']
+
+        var photoUrl = photo['key'];
+        var fullPhotoUrl = `${path.slice(0, (path.length - 1)).join('/')}/full/${photo['name']}`
+        photos_html.push( getHtml([
+            `<a href="${fullPhotoUrl}">`,
+                `<img src="${photoUrl}"/></a>`,
+            '</a>',
+        ]));
+    }
+    /*
+        <video controls="controls" width="800" height="600" name="Video Name">
+            <source src="http://www.myserver.com/myvideo.mov">
+        </video>
+    */
+    return photos_html;
 }
 
 var promise_data = bucket_data();
 
 if ( typeof promise_data === 'object' && promise_data !== null && 'then' in promise_data ) {
-    album_list()
+    album_list(album)
 }
