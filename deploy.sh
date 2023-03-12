@@ -12,6 +12,9 @@ aws-vault exec zipkid -- aws cloudformation deploy \
 npm run build &&
 
 export BUCKET='devopsdays.zipkid.eu'
+npm run build && aws-vault exec zipkid -- aws s3 sync web/ s3://${BUCKET} --acl public-read
+
+export BUCKET='devopsdays.zipkid.eu'
 aws-vault exec zipkid -- aws s3 sync web/ s3://${BUCKET} --acl public-read
 
 export BUCKET='devopsdays.zipkid.eu'

@@ -42,9 +42,9 @@ console.log(`origin : ${origin} - url : ${url} - pathname : ${pathname}`)
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
-export const album = urlParams.get('a')
-export const sub_album = urlParams.get('s')
-export const photo = urlParams.get('p')
+export const album = urlParams.get('a') || ''
+export const sub_album = urlParams.get('s') || ''
+export const photo = urlParams.get('p') ||''
 
 console.log('queryString: ' + queryString);
 
@@ -123,10 +123,17 @@ function parse_contents(contents) {
     return data;
 }
 
-export function album_list(album) {
+export function main(album = '', sub_album = '', photo = '') {
     promise_data.then(function(data) {
-        let htmlTemplate = build_album_list_html(data)
-        document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
+        if ( (album !== '') && (sub_album !== '') ) {
+            build_album(sub_album, album)
+        } else if ( (album !== '') ) {
+            build_album(album)
+        } else {
+            let htmlTemplate = build_album_list_html(data)
+            document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
+            addState('');
+        }
     })
 }
 
@@ -141,7 +148,7 @@ function build_album_list_html(data, parent) {
     return htmlTemplate;
 }
 
-function build_album_list(data, parent) {
+function build_album_list(data, parent='') {
     let album_html = []
     for ( const albumName of Object.keys(data).sort() ) {
         album_html.push( getHtml([
@@ -155,18 +162,23 @@ function build_album_list(data, parent) {
     return album_html;
 }
 
-export function build_album(albumName, parent) {
+export function build_album(albumName, parent = '') {
     promise_data.then(function(data) {
-        build_album_html(albumName, data, parent)
+        build_album_html(data, albumName, parent)
     })
 }
 
-function build_album_html(albumName, data, parent) {
+function build_album_html(data, albumName, parent) {
     let album = []
-    if ( parent === 'undefined' ) {
-        album = data[albumName]
+    let location = ''
+    let add_parent_link = false
+    if ( parent == '' ) {
+        album = data[albumName];
+        location = `?a=${albumName}`;
     } else {
-        album = data[parent]['albums'][albumName]
+        album = data[parent]['albums'][albumName];
+        location = `?a=${parent}&s=${albumName}`;
+        add_parent_link = true;
     }
     let photos = album['photos']
     let albums = []
@@ -174,23 +186,34 @@ function build_album_html(albumName, data, parent) {
         albums = build_album_list_html(album['albums'], albumName)
     }
     let photos_html = build_photo_list(photos)
+    let parent_link = []
+    if ( add_parent_link ) {
+        parent_link = [
+            `<button onclick="EntryPoint.main('${parent}')">`,
+                `Back To ${parent}`,
+            '</button>',
+        ]
+    }
     var htmlTemplate = [
         '<div>',
-            `<button onclick="EntryPoint.album_list('${parent})">`,
-                'Back To Albums',
+            `<button onclick="EntryPoint.main()">`,
+                `Back To Albums`,
             '</button>',
+            getHtml(parent_link),
         '</div>',
         getHtml(albums),
         '<div id="lightgallery">',
             getHtml(photos_html),
         '</div>',
         '<div>',
-            `<button onclick="EntryPoint.album_list('${parent})">`,
-                'Back To Albums',
+            `<button onclick="EntryPoint.main()">`,
+                `Back To Albums`,
             '</button>',
+            getHtml(parent_link),
         '</div>',
     ]
     document.getElementById('viewer').innerHTML = getHtml(htmlTemplate);
+    addState(location);
     const $dynamicGallery = document.getElementById('lightgallery');
     const dynamicGallery = lightGallery($dynamicGallery, {
         plugins: [lgZoom, lgThumbnail],
@@ -223,5 +246,5 @@ function build_photo_list(data) {
 var promise_data = bucket_data();
 
 if ( typeof promise_data === 'object' && promise_data !== null && 'then' in promise_data ) {
-    album_list(album)
+    main(album, sub_album, photo)
 }
