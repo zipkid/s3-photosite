@@ -38,7 +38,7 @@ var url      = window.location.href;     // Returns full URL (https://example.co
 var origin   = window.location.origin;   // Returns base URL (https://example.com)
 // window.location.href = "http://stackoverflow.com"; // Set URL
 
-console.log(`origin : ${origin} - url : ${url} - pathname : ${pathname}`)
+// console.log(`origin : ${origin} - url : ${url} - pathname : ${pathname}`)
 
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
@@ -46,7 +46,7 @@ export const album = urlParams.get('a') || ''
 export const sub_album = urlParams.get('s') || ''
 export const photo = urlParams.get('p') ||''
 
-console.log('queryString: ' + queryString);
+// console.log('queryString: ' + queryString);
 
 const s3Client = new S3Client({
     region: REGION,

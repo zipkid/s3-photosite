@@ -15,6 +15,6 @@ module.exports = {
   resolve:{
     fallback: { path: require.resolve("path-browserify")}
   },
-  mode: 'development'
-  // mode: 'production'
+  // mode: 'development'
+  mode: 'production'
 };
